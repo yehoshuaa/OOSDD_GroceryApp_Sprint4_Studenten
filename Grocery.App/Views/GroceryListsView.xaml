@@ -12,6 +12,11 @@
         </Grid>
     </Shell.TitleView>
 
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="{Binding Client.Name}"
+               Command="{Binding ShowBoughtProductsCommand}" />
+    </ContentPage.ToolbarItems>
+
     <Border Stroke="#C49B33"
         StrokeThickness="4"
         Padding="10"
@@ -24,7 +29,8 @@
             <CollectionView.ItemsLayout>
                 <LinearItemsLayout Orientation="Vertical" ItemSpacing="10" />
             </CollectionView.ItemsLayout>
-
+            
+           
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="m:GroceryList">
                     <Grid>
