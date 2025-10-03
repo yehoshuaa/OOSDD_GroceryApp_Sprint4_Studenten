@@ -10,12 +10,20 @@ namespace Grocery.App.ViewModels
     {
         public ObservableCollection<GroceryList> GroceryLists { get; set; }
         private readonly IGroceryListService _groceryListService;
-
-        public GroceryListViewModel(IGroceryListService groceryListService) 
+        private readonly IClientService _clientService;   
+        public Client Client { get; }                     //toolbar binding
+        //UC13: admin view
+        public GroceryListViewModel(IGroceryListService groceryListService,
+                                    IClientService clientService)            // ← DI aanvullen
         {
             Title = "Boodschappenlijst";
             _groceryListService = groceryListService;
+            _clientService = clientService;
+
             GroceryLists = new(_groceryListService.GetAll());
+
+            // UC13: user3 is admin;
+            Client = _clientService.Get(3)!;             
         }
 
         [RelayCommand]
@@ -24,6 +32,7 @@ namespace Grocery.App.ViewModels
             Dictionary<string, object> paramater = new() { { nameof(GroceryList), groceryList } };
             await Shell.Current.GoToAsync($"{nameof(Views.GroceryListItemsView)}?Titel={groceryList.Name}", true, paramater);
         }
+
         public override void OnAppearing()
         {
             base.OnAppearing();
@@ -34,6 +43,16 @@ namespace Grocery.App.ViewModels
         {
             base.OnDisappearing();
             GroceryLists.Clear();
+        }
+
+        // ⬇️ UC13: alleen admins mogen naar BoughtProductsView
+        [RelayCommand]
+        public async Task ShowBoughtProducts()
+        {
+            if (Client.Role == Role.admin)
+            {
+                await Shell.Current.GoToAsync(nameof(Views.BoughtProductsView));
+            }
         }
     }
 }
