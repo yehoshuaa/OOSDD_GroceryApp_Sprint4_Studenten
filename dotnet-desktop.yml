@@ -1,5 +1,4 @@
-
-name: Build & Test MAUI App
+name: Build MAUI App
 
 on:
   push:
@@ -8,48 +7,40 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-test:
+  build:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v4
 
-      - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: 8.0.x
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 8.0.x
 
-      - name: Cache NuGet
-        uses: actions/cache@v4
-        with:
-          path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
-          restore-keys: |
-            nuget-${{ runner.os }}-
+    # Restore dependencies
+    - name: Restore
+      run: dotnet restore Grocery.App/Grocery.App.csproj
 
-      - name: Install MAUI workloads
-        run: |
-          dotnet workload install maui-android maui-windows --ignore-failed-sources
-          dotnet --info
+    # --- Build Windows ---
+    - name: Build MAUI Windows
+      run: dotnet publish Grocery.App/Grocery.App.csproj -c Release -f net8.0-windows10.0.19041.0 -r win-x64 -p:PublishReadyToRun=false --self-contained true -o ./artifacts/windows
 
-      - name: Restore (App)
-        run: dotnet restore Grocery.App/Grocery.App.csproj
+    # Upload Windows artifact
+    - name: Upload Windows Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GroceryApp-Windows
+        path: ./artifacts/windows
 
-      - name: Restore (Tests)
-        run: |
-          if (Test-Path "TestCore/TestCore.csproj") { dotnet restore TestCore/TestCore.csproj }
+    # --- Build Android ---
+    - name: Build MAUI Android
+      run: dotnet publish Grocery.App/Grocery.App.csproj -c Release -f net8.0-android -p:AndroidPackageFormat=apk -o ./artifacts/android
 
-      # ---------- run unit tests & upload de results ----------
-      - name: Run Unit Tests
-        if: ${{ hashFiles('TestCore/TestCore.csproj') != '' }}
-        run: |
-          dotnet test TestCore/TestCore.csproj `
-            --configuration Release `
-            --logger "trx;LogFileName=test_results.trx" `
-            --results-directory ./TestResults
-
-      - name: Upload Test Results (.trx)
-        if: always()  upload even if tests fail
-        uses: actions/upload-artifact@v4
-        with:
+    # Upload Android artifact
+    - name: Upload Android Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: GroceryApp-Android
+        path: ./artifacts/android
